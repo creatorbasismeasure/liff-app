@@ -1,18 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LINE連携</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <h2>LINE連携</h2>
-  <div id="status">初期化中...</div>
-  <div id="userId"></div>
+  <h2>LINE連携中...</h2>
+  <p id="status">処理を開始します</p>
 
   <script>
     const LIFF_ID = "2009766970-EY44liaw";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzbtupbaNDdtAfz8OnBBYIpP1dLafnINqdd6_C_LHvHpeLAqsI2citd58j6GLglQWo1/exec";
 
     async function main() {
+      const status = document.getElementById("status");
+
       try {
         await liff.init({ liffId: LIFF_ID });
 
@@ -22,11 +26,33 @@
         }
 
         const profile = await liff.getProfile();
-        document.getElementById("userId").innerText = profile.userId;
-        document.getElementById("status").innerText = "取得成功";
+        const userId = profile.userId;
 
+        const params = new URLSearchParams(window.location.search);
+        const mid = params.get("mid");
+
+        if (!mid) {
+          status.textContent = "mid がURLにありません";
+          return;
+        }
+
+        status.textContent = "連携情報を送信中...";
+
+        const res = await fetch(GAS_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify({
+            measurementId: mid,
+            lineUserId: userId
+          })
+        });
+
+        const text = await res.text();
+        status.textContent = "完了: " + text;
       } catch (e) {
-        document.getElementById("status").innerText = "エラー: " + e.message;
+        status.textContent = "エラー: " + e.message;
       }
     }
 
