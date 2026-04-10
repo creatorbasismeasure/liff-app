@@ -45,23 +45,27 @@
 
         if (data.status === "success") {
           statusEl.innerText = "LINE連携が完了しました。";
-
+        
           setTimeout(() => {
-            liff.closeWindow();
+            if (liff.isInClient()) {
+              liff.closeWindow();
+            } else {
+              statusEl.innerText = "LINE連携が完了しました。画面を閉じてください。";
+            }
           }, 3000);
-
+        
         } else if (data.status === "already_linked") {
           statusEl.innerText = "この受付情報はすでにLINE連携済みです。";
-
+        
         } else if (data.status === "duplicate") {
           statusEl.innerText = "このLINEアカウントはすでに別の受付情報に連携されています。";
-
+        
         } else if (data.status === "not_found") {
           statusEl.innerText = "受付情報が見つかりませんでした。";
-
+        
         } else if (data.status === "invalid_request") {
           statusEl.innerText = "必要な情報が不足しています。";
-
+        
         } else {
           statusEl.innerText = "不明な応答です。";
         }
