@@ -13,7 +13,7 @@
 
   <script>
     const LIFF_ID = "2009766970-EY44liaw";
-    const GAS_URL = "あなたのGASのURL";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzbtupbaNDdtAfz8OnBBYIpP1dLafnINqdd6_C_LHvHpeLAqsI2citd58j6GLglQWo1/exec";
     const statusEl = document.getElementById("status");
   
     async function main() {
@@ -36,30 +36,14 @@
         const profile = await liff.getProfile();
         const lineUserId = profile.userId;
   
-        const res = await fetch(GAS_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-          },
-          body: JSON.stringify({
-            mid: mid,
-            lineUserId: lineUserId
-          })
-        });
-        
-        const rawText = await res.text();
-        statusEl.innerText = "返却: " + rawText;
-        
-        let data;
-        try {
-          data = JSON.parse(rawText);
-        } catch (e) {
-          statusEl.innerText = "JSON以外が返りました: " + rawText;
-          return;
-        }
-        console.log(data);
+        const url =
+          GAS_URL +
+          "?mid=" + encodeURIComponent(mid) +
+          "&lineUserId=" + encodeURIComponent(lineUserId);
   
-        // 👇ここがポイント
+        const res = await fetch(url);
+        const data = await res.json();
+  
         if (data.status === "success") {
           statusEl.innerText = "LINE連携が完了しました。";
         } else if (data.status === "already_linked") {
@@ -68,6 +52,8 @@
           statusEl.innerText = "このLINEアカウントはすでに別の受付情報に連携されています。";
         } else if (data.status === "not_found") {
           statusEl.innerText = "受付情報が見つかりませんでした。";
+        } else if (data.status === "invalid_request") {
+          statusEl.innerText = "必要な情報が不足しています。";
         } else {
           statusEl.innerText = "不明な応答です。";
         }
