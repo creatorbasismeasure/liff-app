@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <h2>LINE連携</h2>
+  <div id="status">初期化中...</div>
+  <div id="userId"></div>
+
+  <script>
+    const LIFF_ID = "2009766970-EY44liaw";
+
+    async function main() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        document.getElementById("userId").innerText = profile.userId;
+        document.getElementById("status").innerText = "取得成功";
+
+      } catch (e) {
+        document.getElementById("status").innerText = "エラー: " + e.message;
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
