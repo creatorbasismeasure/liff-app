@@ -7,37 +7,35 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <h2>LINE連携中...</h2>
-  <p id="status">処理を開始します</p>
+  <h2>LINE連携</h2>
+  <p id="status">処理中です...</p>
+</body>
 
   <script>
     const LIFF_ID = "2009766970-EY44liaw";
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzbtupbaNDdtAfz8OnBBYIpP1dLafnINqdd6_C_LHvHpeLAqsI2citd58j6GLglQWo1/exec";
-
+    const GAS_URL = "あなたのGASのURL";
+    const statusEl = document.getElementById("status");
+  
     async function main() {
-      const status = document.getElementById("status");
-
       try {
         await liff.init({ liffId: LIFF_ID });
-
+  
         if (!liff.isLoggedIn()) {
           liff.login();
           return;
         }
-
-        const profile = await liff.getProfile();
-        const userId = profile.userId;
-
+  
         const params = new URLSearchParams(window.location.search);
         const mid = params.get("mid");
-
+  
         if (!mid) {
-          status.textContent = "mid がURLにありません";
+          statusEl.innerText = "受付情報が指定されていません。";
           return;
         }
-
-        status.textContent = "連携情報を送信中...";
-
+  
+        const profile = await liff.getProfile();
+        const lineUserId = profile.userId;
+  
         const res = await fetch(GAS_URL, {
           method: "POST",
           headers: {
@@ -45,17 +43,31 @@
           },
           body: JSON.stringify({
             mid: mid,
-            lineUserId: userId
+            lineUserId: lineUserId
           })
         });
-
-        const text = await res.text();
-        status.textContent = "完了: " + text;
-      } catch (e) {
-        status.textContent = "エラー: " + e.message;
+  
+        const data = await res.json();
+  
+        // 👇ここがポイント
+        if (data.status === "success") {
+          statusEl.innerText = "LINE連携が完了しました。";
+        } else if (data.status === "already_linked") {
+          statusEl.innerText = "この受付情報はすでにLINE連携済みです。";
+        } else if (data.status === "duplicate") {
+          statusEl.innerText = "このLINEアカウントはすでに別の受付情報に連携されています。";
+        } else if (data.status === "not_found") {
+          statusEl.innerText = "受付情報が見つかりませんでした。";
+        } else {
+          statusEl.innerText = "不明な応答です。";
+        }
+  
+      } catch (err) {
+        console.error(err);
+        statusEl.innerText = "エラーが発生しました。";
       }
     }
-
+  
     main();
   </script>
 </body>
