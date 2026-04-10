@@ -46,8 +46,17 @@
             lineUserId: lineUserId
           })
         });
-  
-        const data = await res.json();
+        
+        const rawText = await res.text();
+        statusEl.innerText = "返却: " + rawText;
+        
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          statusEl.innerText = "JSON以外が返りました: " + rawText;
+          return;
+        }
         console.log(data);
   
         // 👇ここがポイント
