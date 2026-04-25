@@ -12,53 +12,60 @@
 
   <script>
     const LIFF_ID = "2009766970-EY44liaw";
+
+    // ここは、GASTEST01で成功したURLの「/exec」までにしてください
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwaGunN61BWCfGJf7HKH9fVYtkzKhxVEc1jX0ukhzXGdbTU76Nn1-1yR4nqBuPHDXhx/exec";
+
     const statusEl = document.getElementById("status");
 
     function getMidFromUrlOrStorage() {
       const params = new URLSearchParams(window.location.search);
-    
-      // 1. 通常の ?mid=... から取得
+
       const midFromUrl = params.get("mid");
       if (midFromUrl) {
         sessionStorage.setItem("measurementId", midFromUrl);
         return midFromUrl;
       }
-    
-      // 2. LIFF URL経由の場合、?liff.state=... の中に mid が入ることがある
+
       const liffState = params.get("liff.state");
       if (liffState) {
         const decodedState = decodeURIComponent(liffState);
         const stateParams = new URLSearchParams(
           decodedState.startsWith("?") ? decodedState.substring(1) : decodedState
         );
-    
+
         const midFromState = stateParams.get("mid");
         if (midFromState) {
           sessionStorage.setItem("measurementId", midFromState);
           return midFromState;
         }
       }
-    
-      // 3. ログイン前に保存したものを復元
-      return sessionStorage.getItem("measurementId");
-    }
 
       return sessionStorage.getItem("measurementId");
     }
 
     async function main() {
       try {
+        statusEl.innerText = "STEP 1: mid確認中...";
+
         const mid = getMidFromUrlOrStorage();
 
         if (!mid) {
-          statusEl.innerText = "受付情報が指定されていません。";
+          statusEl.innerText =
+            "受付情報が指定されていません。\n\n" +
+            "現在のURL: " + window.location.href;
           return;
         }
 
+        statusEl.innerText = "STEP 2: LIFF初期化中...\nmid=" + mid;
+
         await liff.init({ liffId: LIFF_ID });
 
+        statusEl.innerText = "STEP 3: ログイン状態確認中...";
+
         if (!liff.isLoggedIn()) {
+          statusEl.innerText = "STEP 4: LINEログインへ移動します...";
+
           const redirectUri =
             window.location.origin +
             window.location.pathname +
@@ -68,8 +75,15 @@
           return;
         }
 
+        statusEl.innerText = "STEP 5: LINEプロフィール取得中...";
+
         const profile = await liff.getProfile();
         const lineUserId = profile.userId;
+
+        statusEl.innerText =
+          "STEP 6: GASへ送信中...\n" +
+          "mid=" + mid + "\n" +
+          "lineUserId取得済み";
 
         const url =
           GAS_URL +
@@ -77,7 +91,13 @@
           "&lineUserId=" + encodeURIComponent(lineUserId);
 
         const res = await fetch(url);
-        const data = await res.json();
+        const text = await res.text();
+
+        statusEl.innerText =
+          "STEP 7: GAS応答受信\n\n" +
+          text;
+
+        const data = JSON.parse(text);
 
         if (data.status === "success") {
           sessionStorage.removeItem("measurementId");
@@ -102,10 +122,14 @@
           statusEl.innerText = "受付情報が見つかりませんでした。";
 
         } else if (data.status === "invalid_request") {
-          statusEl.innerText = "必要な情報が不足しています。";
+          statusEl.innerText =
+            "必要な情報が不足しています。\n\n" +
+            JSON.stringify(data);
 
         } else {
-          statusEl.innerText = "不明な応答です。";
+          statusEl.innerText =
+            "不明な応答です。\n\n" +
+            JSON.stringify(data);
         }
 
       } catch (err) {
