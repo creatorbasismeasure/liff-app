@@ -90,7 +90,11 @@
 
       } catch (err) {
         console.error(err);
-        statusEl.innerText = "エラーが発生しました。";
+
+        statusEl.innerText =
+          "エラーが発生しました。\n\n" +
+          "message: " + (err && err.message ? err.message : String(err)) + "\n\n" +
+          "現在のURL: " + window.location.href;
       }
     }
 
