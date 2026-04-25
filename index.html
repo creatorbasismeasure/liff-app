@@ -17,12 +17,32 @@
 
     function getMidFromUrlOrStorage() {
       const params = new URLSearchParams(window.location.search);
+    
+      // 1. 通常の ?mid=... から取得
       const midFromUrl = params.get("mid");
-
       if (midFromUrl) {
         sessionStorage.setItem("measurementId", midFromUrl);
         return midFromUrl;
       }
+    
+      // 2. LIFF URL経由の場合、?liff.state=... の中に mid が入ることがある
+      const liffState = params.get("liff.state");
+      if (liffState) {
+        const decodedState = decodeURIComponent(liffState);
+        const stateParams = new URLSearchParams(
+          decodedState.startsWith("?") ? decodedState.substring(1) : decodedState
+        );
+    
+        const midFromState = stateParams.get("mid");
+        if (midFromState) {
+          sessionStorage.setItem("measurementId", midFromState);
+          return midFromState;
+        }
+      }
+    
+      // 3. ログイン前に保存したものを復元
+      return sessionStorage.getItem("measurementId");
+    }
 
       return sessionStorage.getItem("measurementId");
     }
