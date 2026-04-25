@@ -15,20 +15,36 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzbtupbaNDdtAfz8OnBBYIpP1dLafnINqdd6_C_LHvHpeLAqsI2citd58j6GLglQWo1/exec";
     const statusEl = document.getElementById("status");
 
+    function getMidFromUrlOrStorage() {
+      const params = new URLSearchParams(window.location.search);
+      const midFromUrl = params.get("mid");
+
+      if (midFromUrl) {
+        sessionStorage.setItem("measurementId", midFromUrl);
+        return midFromUrl;
+      }
+
+      return sessionStorage.getItem("measurementId");
+    }
+
     async function main() {
       try {
-        await liff.init({ liffId: LIFF_ID });
-
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
-        const params = new URLSearchParams(window.location.search);
-        const mid = params.get("mid");
+        const mid = getMidFromUrlOrStorage();
 
         if (!mid) {
           statusEl.innerText = "受付情報が指定されていません。";
+          return;
+        }
+
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          const redirectUri =
+            window.location.origin +
+            window.location.pathname +
+            "?mid=" + encodeURIComponent(mid);
+
+          liff.login({ redirectUri: redirectUri });
           return;
         }
 
@@ -44,8 +60,9 @@
         const data = await res.json();
 
         if (data.status === "success") {
+          sessionStorage.removeItem("measurementId");
           statusEl.innerText = "LINE連携が完了しました。";
-        
+
           setTimeout(() => {
             if (liff.isInClient()) {
               liff.closeWindow();
@@ -53,19 +70,20 @@
               statusEl.innerText = "LINE連携が完了しました。画面を閉じてください。";
             }
           }, 3000);
-        
+
         } else if (data.status === "already_linked") {
+          sessionStorage.removeItem("measurementId");
           statusEl.innerText = "この受付情報はすでにLINE連携済みです。";
-        
+
         } else if (data.status === "duplicate") {
           statusEl.innerText = "このLINEアカウントはすでに別の受付情報に連携されています。";
-        
+
         } else if (data.status === "not_found") {
           statusEl.innerText = "受付情報が見つかりませんでした。";
-        
+
         } else if (data.status === "invalid_request") {
           statusEl.innerText = "必要な情報が不足しています。";
-        
+
         } else {
           statusEl.innerText = "不明な応答です。";
         }
